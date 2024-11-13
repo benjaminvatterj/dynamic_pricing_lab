@@ -102,7 +102,7 @@ To allow the Python script to interact with Google Sheets, you need to enable th
 
 ```bash
 mkdir pricing_game
-git clone git@github.com:benjaminvatterj/dynamic_pricing_lab.git ./pricing_game/
+git clone https://github.com/benjaminvatterj/dynamic_pricing_lab.git ./pricing_game/
 ```
 
 ### On Windows:
@@ -125,7 +125,7 @@ Either download the repository as a ZIP file from [https://github.com/benjaminva
      - Run the following command:
 
        ```bash
-       git clone https://github.com/benjaminvatterj/dynamic_pricing_lab.git ./code
+       git clone https://github.com/benjaminvatterj/dynamic_pricing_lab.git ./
        ```
 
      - *Note*: If you have SSH set up, you can use the SSH URL instead.
