@@ -1,6 +1,3 @@
-Certainly! Below is the `README.md` file with the installation instructions converted into Markdown format:
-
----
 
 # Pricing Game Application
 
@@ -19,16 +16,22 @@ This repository contains a Python script that allows teachers to conduct an inte
       - [**a. Create a Google Cloud Project**](#a-create-a-google-cloud-project)
       - [**b. Enable the Google Sheets API**](#b-enable-the-google-sheets-api)
       - [**c. Create OAuth 2.0 Credentials**](#c-create-oauth-20-credentials)
-    - [2. Install Required Python Packages](#2-install-required-python-packages)
-    - [3. Prepare Your Google Spreadsheet](#3-prepare-your-google-spreadsheet)
+    - [2. Clone This Repository](#2-clone-this-repository)
+    - [On Mac/Linux:](#on-maclinux)
+    - [On Windows:](#on-windows)
+    - [3. Install Required Python Packages](#3-install-required-python-packages)
+      - [On Mac/Linux:](#on-maclinux-1)
+      - [On Windows:](#on-windows-1)
+    - [4. Prepare Your Google Spreadsheet](#4-prepare-your-google-spreadsheet)
       - [**a. Create the Spreadsheet**](#a-create-the-spreadsheet)
       - [**b. Sheet Structure**](#b-sheet-structure)
       - [**c. Share the Spreadsheet**](#c-share-the-spreadsheet)
-    - [4. Place the `credentials.json` File in Your Project Directory](#4-place-the-credentialsjson-file-in-your-project-directory)
+    - [5. Place the `credentials.json` File in Your Project Directory](#5-place-the-credentialsjson-file-in-your-project-directory)
   - [Running the Script](#running-the-script)
     - [**1. Navigate to the Script Directory**](#1-navigate-to-the-script-directory)
-    - [**2. Run the Script**](#2-run-the-script)
-    - [**3. Authorize the Application**](#3-authorize-the-application)
+    - [**2. Register your section**](#2-register-your-section)
+    - [**3. Run the Script**](#3-run-the-script)
+    - [**4. Authorize the Application**](#4-authorize-the-application)
   - [Usage](#usage)
   - [Notes](#notes)
   - [License](#license)
@@ -39,7 +42,10 @@ This repository contains a Python script that allows teachers to conduct an inte
 
 - Interactive terminal interface for teachers to control the game.
 - Random pairing of students for competition rounds.
-- Supports two demand modes: homogeneous and heterogeneous.
+- Supports several demand and differentiation models:
+  - **Homogenous Bertrand** : winner-takes-all with market share curve `s1(p1, p2)=1 - p1` if `p1 < p2` and `0` otherwise. Total demand = 100.
+  - **Low differentaition Logit**: market share `s1(p1,p2) = exp(-p1) / (exp(-p1) + exp(-p2))`. Total demand = 100.
+  - **High differentiation Hotelling**: transportation cost `t=1` and market share `s1(p1,p2) = (p2 + t - p1) / 2t`.  Total demand = 100.
 - Processes pricing decisions and calculates market shares and profits.
 - Updates Google Sheets in real-time with game outcomes.
 - Generates additional sheets with results and plots for analysis.
@@ -90,37 +96,111 @@ To allow the Python script to interact with Google Sheets, you need to enable th
 
 ---
 
-### 2. Install Required Python Packages
+### 2. Clone This Repository
 
-Open your terminal or command prompt and run the following command to install the necessary Python packages:
+### On Mac/Linux:
 
 ```bash
-pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-oauthlib pandas matplotlib
+mkdir pricing_game
+git clone git@github.com:benjaminvatterj/dynamic_pricing_lab.git ./pricing_game/
 ```
 
+### On Windows:
+Either download the repository as a ZIP file from [https://github.com/benjaminvatterj/dynamic_pricing_lab](https://github.com/benjaminvatterj/dynamic_pricing_lab) or install git for continuous updatings
+
+
+   - **Download Git for Windows**:
+     - Visit [https://git-scm.com/download/win](https://git-scm.com/download/win).
+     - Click on **"64-bit Git for Windows Setup"** to download the installer.
+   - **Install Git**:
+     - Run the downloaded installer.
+     - Follow the default settings during installation.
+   - **Access Git Bash**:
+     - After installation, you can access **Git Bash** from the Start Menu or by right-clicking on your desktop and selecting **"Git Bash Here"**.
+   - **Create a New Folder**:
+     - Open **File Explorer** and navigate to where you want to store the project.
+     - Right-click and select **"New" > "Folder"** and name it `pricing_game`.
+   - **Clone the Repository**:
+     - Open **Git Bash** by right-clicking inside the `pricing_Game` folder and selecting **"Git Bash Here"**.
+     - Run the following command:
+
+       ```bash
+       git clone https://github.com/benjaminvatterj/dynamic_pricing_lab.git ./code
+       ```
+
+     - *Note*: If you have SSH set up, you can use the SSH URL instead.
+
+---
+### 3. Install Required Python Packages
+
+#### On Mac/Linux:
+
+  - **Install mamba if not already installed**
+    ```bash
+    # On Mac
+    # Install homebrew if you don't have it
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    # Then install miniforge
+    brew install miniforge
+
+    # on Linux
+    curl -L -O "https://github.com/conda-forge/miniforge/releases/latest/download/Miniforge3-$(uname)-$(uname -m).sh"
+    bash Miniforge3-$(uname)-$(uname -m).sh
+    ```
+  - **Create the mamba environment**
+    ```bash
+    # Cd into the code directory if you are not already there
+    cd pricing_game
+    # create the environment
+    mamba env create --name pricing_game --file dynamic_pricing_lab.yaml
+    ```
+  - **Activate the environment**
+    ```bash
+    mamba activate pricing_game
+    ```
+
+#### On Windows:
+
+
+   - **Download Miniconda**:
+     - Visit [https://docs.conda.io/en/latest/miniconda.html#windows-installers](https://docs.conda.io/en/latest/miniconda.html#windows-installers).
+     - Download the **"Windows x86_64 executable installer"** for Python 3.x.
+   - **Install Miniconda**:
+     - Run the installer and follow the prompts.
+     - Choose **"Add Miniconda3 to PATH environment variable"** when prompted.
+   - **Install Mamba**:
+     - Open **Anaconda Prompt** from the Start Menu.
+     - Run the following command:
+
+       ```bash
+       conda install mamba -n base -c conda-forge
+       ```
+   - **Open Anaconda Prompt**:
+     - Find **Anaconda Prompt** in the Start Menu.
+   - **Navigate to the `code` Directory**:
+
+     ```bash
+     cd C:\path\to\pricing_game
+     ```
+   - **Create the Environment**:
+     ```bash
+     mamba env create --name pricing_game --file dynamic_pricing_game.yaml
+     ```
+
+  - **Activate the Environment**:
+     ```bash
+     mamba activate pricing_game
+     ```
 ---
 
-### 3. Prepare Your Google Spreadsheet
+### 4. Prepare Your Google Spreadsheet
 
 #### **a. Create the Spreadsheet**
 
 - Open **Google Sheets** and create a new spreadsheet.
 
 #### **b. Sheet Structure**
-
-- **Sheet 1 (OpenSheet)**:
-  - Rename the first sheet to **"OpenSheet"**.
-  - **Column A**: Student Names (header: `Name`)
-  - **Column B**: Student IDs (header: `ID`)
-  - **Columns C to L**: Pricing decisions for stages 1 to 10 (headers: `Price_1`, `Price_2`, ..., `Price_10`)
-
-- **Sheet 2 (ProtectedSheet)**:
-  - Add a new sheet and rename it to **"ProtectedSheet"**.
-  - **Column A**: Student Names (header: `Name`)
-  - **Column B**: Student IDs (header: `ID`)
-  - **Columns C to AH**: Outcome data for each round (three columns per round):
-    - `Round1_RivalPrice`, `Round1_MarketShare`, `Round1_Profit`, ..., `Round10_Profit`
-  - **Column AI**: Total accumulated profit (header: `Total Profit`)
+  You can see an example structure in this link [example sheet](https://docs.google.com/spreadsheets/d/1myQtsawgrc1Fy1l_eq8qO5IHmjlbWosj_ydJe-3O9eA/edit?usp=sharing)
 
 #### **c. Share the Spreadsheet**
 
@@ -132,7 +212,7 @@ pip install --upgrade google-api-python-client google-auth-httplib2 google-auth-
 
 ---
 
-### 4. Place the `credentials.json` File in Your Project Directory
+### 5. Place the `credentials.json` File in Your Project Directory
 
 - Create a new directory for your project (e.g., `pricing_game`).
 - Place the `credentials.json` file you downloaded into this directory.
@@ -149,15 +229,25 @@ Open your terminal or command prompt and navigate to the directory containing `g
 cd path/to/your/project/directory
 ```
 
-### **2. Run the Script**
+### **2. Register your section**
+  This is needed only once per section
+```bash
+mamba activate pricing_game
+python main.py --register <section_name> <section_id>
+```
+  Where "Section Name" is the name of the section and "Section Sheet ID" is the ID of the Google Sheet,
+  which is the string in the URL after 'https://docs.google.com/spreadsheets/d/' and before '/edit'.
+
+### **3. Run the Script**
 
 Execute the script by running:
 
 ```bash
+mamba activate pricing_game
 python game_app.py
 ```
 
-### **3. Authorize the Application**
+### **4. Authorize the Application**
 
 - The first time you run the script, a browser window will open asking you to authorize the application.
 - Sign in with your Google account and allow the required permissions.
@@ -233,7 +323,7 @@ python game_app.py
 
 - **Cost of Production**:
 
-  - The variable `cost` in the script is set to `10`. Adjust this value if your game uses a different cost.
+  - The variable `cost` in the script is set to `0`. Adjust this value if your game uses a different cost.
 
 ---
 
