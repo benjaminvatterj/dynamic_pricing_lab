@@ -1,0 +1,14 @@
+name: dynamic_pricing_lab
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - matplotlib=3.9.2
+  - pip=24.2
+  - ipython=8.26.0
+  - blas=2.123
+  - numpy=1.26.4
+  - scipy=1.14.0
+  - pandas=2.2.2
+  - google-api-python-client=2.152.0
+  - google-auth-oauthlib=1.2.1

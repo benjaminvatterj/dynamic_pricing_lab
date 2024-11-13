@@ -1,0 +1,7 @@
+*.pickle
+*.json
+output/
+plots/
+.DS_Store
+__pycache__/
+*.pyc
