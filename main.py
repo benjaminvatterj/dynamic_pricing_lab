@@ -744,7 +744,7 @@ def main():
         # Get the current binding student round
         df_protected = global_settings['df_protected']
         binding_round = df_protected.loc[(df_protected['student_round'] > 0), 'student_round'].min()
-        binding_round = 1 if binding_round is None else binding_round
+        binding_round = 1 if np.isnan(binding_round) else binding_round
         if binding_round > 10:
             print("All rounds have been completed.")
             break
