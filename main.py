@@ -34,6 +34,7 @@ global_settings = {
     'df_protected': None,
     'round_num': None,
     'mode': None,
+    'game_settings': None,
     'residual_student': None,
     'id_to_name': None
 }
@@ -76,9 +77,9 @@ def demand_and_profits(p1, p2):
     # Demand functions
     mode = global_settings['mode']
     total_demand = 100
-    if mode == 'homogenous':
+    if mode == 'bertrand':
         # Market share depends inversely on price
-        slope = 1
+        slope = global_settings['game_settings']['alpha']
         # winner takes all
         if p1 < p2:
             s1_market_share = np.clip(1 - slope * p1 / total_demand, 0, 1.0)
@@ -88,15 +89,13 @@ def demand_and_profits(p1, p2):
             s2_market_share = np.clip(1 - slope * p2 / total_demand, 0.0, 1.0)
         else:
             s1_market_share = s2_market_share = np.clip((1 - slope * p1 / total_demand) / (2.0), 0.0, 0.5)
-    elif mode == 'lowdiff':
-        # simple logit model
-        s1_market_share = np.exp(-p1) / (np.exp(-p1) + np.exp(-p2))
-        s2_market_share = 1 - s1_market_share
-    elif mode == 'highdiff':
-        # hotelling model
-        t = 1 # transport cost
+    elif mode == 'hotelling':
+        # low transport hotelling. NE c+t, monotpoly = v/2
+        # v = 4
+        t = global_settings['game_settings']['t']
+        cost = global_settings['game_settings']['c']
         s1_market_share = np.clip((p2 + t - p1) / (2*t), 0, 1.0)
-        s2_market_share = 1 - s1_market_share    
+        s2_market_share = 1 - s1_market_share
     else:
         raise ValueError("Invalid mode.")
 
@@ -684,20 +683,54 @@ def main():
     print(f"Starting game for section {section_name}")
 
     mode = clean_input("Select game mode:\n"
-                 "(a) homogenous product duopolies (Bertrand) \n"
-                 "(b) low differentiation product duopolies  (logit) \n"
-                 "(c) high differentiation product duopolies (Hotelling) \n"
-                 # "(d) high differentiation three-firm markets \n"
+                 "(a) Homogenous Bertrand \n"
+                 "(b) Hotelling \n"
                  ).lower()
-    if mode not in ['a', 'b', 'c', 'd']:
+    
+    if mode not in ['a', 'b']:
         print("Invalid mode selected.")
         raise ValueError("Invalid mode selected.")
     
+    if mode == 'a':
+        alpha = clean_input("Choose the demand slope parameter alpha (or press Enter for default 1): ")
+        if len(alpha) == 0:
+            alpha = 1
+        else:
+            alpha = float(alpha)
+        global_settings['game_settings'] = {'alpha': alpha}
+    elif mode == 'b':
+        setting = clean_input("Choose a Hotelling Setup:\n"
+                              "(a) Low transport cost (t=1, c=1)\n"
+                              "(b) High transport cost (t=2, c=0)\n"
+                              "(c) Custom\n")
+        if setting not in ['a', 'b', 'c']:
+            print("Invalid setting selected.")
+            raise ValueError("Invalid setting selected.")
+        if setting == 'c':
+            t = clean_input("Choose the transport cost t (or press Enter for default 1): ")
+            if len(t) == 0:
+                t = 1
+            else:
+                t = float(t)
+            c = clean_input("Choose the marginal cost c (or press Enter for default 0): ")
+            if len(c) == 0:
+                c = 0
+            else:
+                c = float(c)
+            global_settings['game_settings'] = {'t': t, 'c': c}
+        elif setting == 'a':
+            t = 1
+            c = 1
+            global_settings['game_settings'] = {'t': t, 'c': c}
+        elif setting == 'b':
+            t = 2
+            c = 0
+            global_settings['game_settings'] = {'t': t, 'c': c}
+        
+    
     mode_map = {
-        'a': 'homogenous',
-        'b': 'lowdiff',
-        'c': 'highdiff',
-        'd': 'threemarket'
+        'a': 'bertrand',
+        'b': 'hotelling',
     }
     mode = mode_map[mode]
     global_settings['mode'] = mode
@@ -758,38 +791,41 @@ if __name__ == '__main__':
     ===== Dynamic Pricing Lab Interface =====
     This script controls the update of the Google Sheets for the Dynamic Pricing Lab.
     
+    ---- Setup ---- 
     Before class, you must register your section sheet using
     
     python main.py --register "Section Name" "Section Sheet ID"
     
     Where "Section Name" is the name of the section and "Section Sheet ID" is the ID of the Google Sheet,
     which is the string in the URL after 'https://docs.google.com/spreadsheets/d/' and before '/edit'.
-    
-    Note that that each spreadsheet must have the following sheets:
-    - Pricing: where students submit their prices
-    - Rival Prices: where the rival prices are displayed
-    - Market Shares: where the market shares are displayed
-    - Profits: where the profits are displayed
-    - GameResults: where the results of the game are displayed
-    
-    Pricing sheet must have the following columns:
-    - Name: student name
-    - ID: student ID
-    - Round 1, Round 2, ..., Round 10: prices for each round
-    Sheets Rival Prices, Market Shares, and Profits must have the exact same structure as Pricing.
-    Profits must have an additional column (M) for the total profit.
-    
-    It is recommended that you protect sheets Rival Prices, Market Shares, and Profits to prevent students from editing them.
-    You should also protect columns A and B in the Pricing sheet to prevent students from editing their names and IDs.
-    
-    
-    During class, you can run the game using
+    See the README.md file for more information.
+   
+    ---- Running the Game ----
+    To run the game, simply run
     python main.py
     
     The script will ask you which section to run the game for and the proceed to select a game mode.
     By default each game runs 10 rounds, but you can exit at any time.
     Plots of prices and profits will be generated for each pair of students and stored in the 'plots' folder, 
     with a subfolder for each section.
+
+    ---- Game Modes ----
+    The game offers the following modes of play:
+    
+    a) Homogenous product duopolies with zero marginal cost (Bertrand):
+        In this game the lowest price firms takes the market and faces a market share function
+            s(p) = 1 - alpha * p
+        alpha can be configured within the game and defaults to one. The monopoly price 1/2 * alpha
+        and the NE is p = 0.
+        
+    b) Hotelling model:
+        Consumers are uniformly distributed on the [0, 1] line with linear transport cost t, firms have
+        marginal cost c and are located at the edgest of the line. The market share function is
+            s_1(p_1, p_2) = (p_1 + t - p_2) / (2t)
+        and the NE is p_1 = p_2 = c + t. 
+    
+    
+    In all games the total demand is set to 100.
 
     """), formatter_class=argparse.RawTextHelpFormatter)
     
@@ -801,7 +837,7 @@ if __name__ == '__main__':
         section_name, section_sheet_id = args.register
         register_section(section_name, section_sheet_id)
     else:
-        main()
+        main()  
         
 # End of main.py
     
