@@ -14,11 +14,6 @@ import warnings
 # silence future warnings
 warnings.simplefilter(action='ignore', category=FutureWarning)
 
-# Define the max price, used as default on missing price
-MAX_PRICE = 50
-
-# Define the cost of production
-cost = 0
 
 # If modifying these scopes, delete the file token.pickle.
 SCOPES = ['https://www.googleapis.com/auth/spreadsheets']
@@ -35,6 +30,7 @@ global_settings = {
     'round_num': None,
     'mode': None,
     'game_settings': None,
+    'game_abbrev': None,
     'residual_student': None,
     'id_to_name': None
 }
@@ -80,6 +76,7 @@ def demand_and_profits(p1, p2):
     if mode == 'bertrand':
         # Market share depends inversely on price
         slope = global_settings['game_settings']['alpha']
+        cost = global_settings['game_settings']['c']
         # winner takes all
         if p1 < p2:
             s1_market_share = np.clip(1 - slope * p1 / total_demand, 0, 1.0)
@@ -635,7 +632,7 @@ def update_game_results():
         valueInputOption='RAW', body=body).execute()
     return
 
-def show_rankings():
+def show_rankings(save=False):
     df_protected = global_settings['df_protected'].copy()
     
     # Show the top-five students by total profit
@@ -645,6 +642,7 @@ def show_rankings():
         "\nTop 5 students by total profit:\n",
         f"{df_protected[['Name', 'Total Profit']].head(5)}\n"
     )
+    
     # Show the top 5 pairs by total profit
     if global_settings['df_pairs'] is None:
         print("No pairs have been assigned.")
@@ -658,6 +656,17 @@ def show_rankings():
         f"{df_pairs[['Student1_Name', 'Student2_Name', 'total_profit']].head(5)}\n"
     )
     print("----------------------")
+    
+    if save:
+        output_dir = './game_results/'
+        if not os.path.exists(output_dir):
+            os.makedirs(output_dir)
+        section_name = global_settings['section_name']
+        game_abbrev = global_settings['game_abbrev']
+        today = pd.Timestamp.now().strftime('%Y-%m-%d')
+        df_protected.to_csv(f'{output_dir}/{section_name}_{game_abbrev}_{today}_indiv_profits.csv', index=False)
+        df_pairs.to_csv(f'{output_dir}/{section_name}_{game_abbrev}_{today}_pair_profits.csv', index=False)
+        
     return
 
 def main():
@@ -697,7 +706,14 @@ def main():
             alpha = 1
         else:
             alpha = float(alpha)
-        global_settings['game_settings'] = {'alpha': alpha}
+            
+        c = clean_input("Choose the marginal cost c (or press Enter for default 0): ")
+        if len(c) == 0:
+            c = 0
+        else:
+            c = float(c)
+        global_settings['game_settings'] = {'alpha': alpha, 'c': c}
+        global_settings['game_abbrev'] = f'bertrand_alpha{alpha}_c{c}'
     elif mode == 'b':
         setting = clean_input("Choose a Hotelling Setup:\n"
                               "(a) Low transport cost (t=1, c=1)\n"
@@ -726,7 +742,7 @@ def main():
             t = 2
             c = 0
             global_settings['game_settings'] = {'t': t, 'c': c}
-        
+        global_settings['game_abbrev'] = f'hotelling_t{t}_c{c}' 
     
     mode_map = {
         'a': 'bertrand',
@@ -780,7 +796,7 @@ def main():
     update_game_results()
      
     # print the highest profit student and the highest profit pair
-    show_rankings()
+    show_rankings(save=True)
     
     # Create a DataFrame for the pairs and total profits
     plot_student_pairs()
