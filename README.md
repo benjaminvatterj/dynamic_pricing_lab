@@ -44,8 +44,7 @@ This repository contains a Python script that allows teachers to conduct an inte
 - Random pairing of students for competition rounds.
 - Supports several demand and differentiation models:
   - **Homogenous Bertrand** : winner-takes-all with market share curve `s1(p1, p2)=1 - p1` if `p1 < p2` and `0` otherwise. Total demand = 100.
-  - **Low differentaition Logit**: market share `s1(p1,p2) = exp(-p1) / (exp(-p1) + exp(-p2))`. Total demand = 100.
-  - **High differentiation Hotelling**: transportation cost `t=1` and market share `s1(p1,p2) = (p2 + t - p1) / 2t`.  Total demand = 100.
+  - **High differentiation Hotelling**: transportation cost `t=1` and market share `s1(p1,p2) = 1/2 +  (p2  - p1) / 200t`.  Total demand = 100.
 - Processes pricing decisions and calculates market shares and profits.
 - Updates Google Sheets in real-time with game outcomes.
 - Generates additional sheets with results and plots for analysis.

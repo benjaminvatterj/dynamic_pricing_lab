@@ -87,12 +87,24 @@ def demand_and_profits(p1, p2):
         else:
             s1_market_share = s2_market_share = np.clip((1 - slope * p1 / total_demand) / (2.0), 0.0, 0.5)
     elif mode == 'hotelling':
-        # low transport hotelling. NE c+t, monotpoly = v/2
-        # v = 4
+        # low transport hotelling. NE c+t, monopoly = v/2
         t = global_settings['game_settings']['t']
         cost = global_settings['game_settings']['c']
-        s1_market_share = np.clip((p2 + t - p1) / (2*t), 0, 1.0)
-        s2_market_share = 1 - s1_market_share
+        v = global_settings['game_settings']['v']
+        # u1(xM) = u2(xM)
+        xM = (-p1 + p2 + 100 * t) / (2 * t)
+        # u1(xA0) = 0
+        xA0 = (v - p1) / t
+        # u2(xB0) = 0
+        xB0 = 100 - (v - p2) / t
+        
+        if xA0 < xB0:
+            s1_market_share = np.clip(xA0 / 100, 0.0, 1.0)
+            s2_market_share = np.clip((100 - xB0) / 100, 0.0, 1.0)
+        elif xA0 > xB0:
+            s1_market_share = np.clip(xM, 0, 100) / 100
+            s2_market_share = 1.0 - s1_market_share    
+        
     else:
         raise ValueError("Invalid mode.")
 
@@ -716,8 +728,8 @@ def main():
         global_settings['game_abbrev'] = f'bertrand_alpha{alpha}_c{c}'
     elif mode == 'b':
         setting = clean_input("Choose a Hotelling Setup:\n"
-                              "(a) Low transport cost (t=1, c=1)\n"
-                              "(b) High transport cost (t=2, c=0)\n"
+                              "(a) High transport cost (t=1, c=0, v=200)\n"
+                              "(b) Low transport cost (t=.5, c=0, v=200)\n"
                               "(c) Custom\n")
         if setting not in ['a', 'b', 'c']:
             print("Invalid setting selected.")
@@ -733,16 +745,25 @@ def main():
                 c = 0
             else:
                 c = float(c)
-            global_settings['game_settings'] = {'t': t, 'c': c}
+            v = clean_input("Choose the location of the firms v (or press Enter for default 4): ")
+            if len(v) == 0:
+                v = 4
+            else:
+                v = float(v)
+            global_settings['game_settings'] = {'t': t, 'c': c, 'v': v}
         elif setting == 'a':
+            # Monopoly price is 150, NE is 100
             t = 1
-            c = 1
-            global_settings['game_settings'] = {'t': t, 'c': c}
-        elif setting == 'b':
-            t = 2
             c = 0
-            global_settings['game_settings'] = {'t': t, 'c': c}
-        global_settings['game_abbrev'] = f'hotelling_t{t}_c{c}' 
+            v = 200
+            global_settings['game_settings'] = {'t': t, 'c': c, 'v': v}
+        elif setting == 'b':
+            # monopoly price is 175, NE is 50
+            t = .5
+            c = 0
+            v = 200
+            global_settings['game_settings'] = {'t': t, 'c': c, 'v': v}
+        global_settings['game_abbrev'] = f'hotelling_t{t}_c{c}_v{v}' 
     
     mode_map = {
         'a': 'bertrand',
@@ -837,8 +858,8 @@ if __name__ == '__main__':
     b) Hotelling model:
         Consumers are uniformly distributed on the [0, 1] line with linear transport cost t, firms have
         marginal cost c and are located at the edgest of the line. The market share function is
-            s_1(p_1, p_2) = (p_1 + t - p_2) / (2t)
-        and the NE is p_1 = p_2 = c + t. 
+            s_1(p_1, p_2) = 1/2 + (p_1 - p_2) / (200 * t)
+        and the NE is p_1 = p_2 = c + 100 * t. 
     
     
     In all games the total demand is set to 100.
