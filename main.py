@@ -32,7 +32,9 @@ global_settings = {
     'game_settings': None,
     'game_abbrev': None,
     'residual_student': None,
-    'id_to_name': None
+    'id_to_name': None,
+    'today': pd.Timestamp.now().strftime('%Y-%m-%d'),
+    'extra_price_plot_lines': {}
 }
 
 
@@ -152,7 +154,16 @@ def prompt_for_section(settings):
     print("Select a section:")
     for i, section_name in enumerate(settings.keys()):
         print(f"{i + 1}. {section_name}")
-    section_index = int(input("Enter the section number: ")) - 1
+    while True:
+        section_index = input("Enter the section number: ")
+        try:
+            section_index = int(section_index)
+            if section_index < 1 or section_index > len(settings):
+                raise ValueError
+            break
+        except ValueError:
+            print("Invalid section number. Please enter a valid section number.")
+    section_index -= 1
     section_name = list(settings.keys())[section_index]
     section_sheet_id = settings[section_name]
     global_settings['section_name'] = section_name
@@ -264,14 +275,23 @@ def plot_student_pairs():
     section_name = global_settings['section_name']
     if not os.path.exists(f'plots/{section_name}'):
         os.makedirs(f'plots/{section_name}')
+    game_abbrev = global_settings['game_abbrev']
+    today = global_settings['today']
+    fig_dir = f'plots/{section_name}/{game_abbrev}_{today}'
+    if not os.path.exists(fig_dir):
+        os.makedirs(fig_dir)
         
-    fig_dir = f'plots/{section_name}'    
     
     # get the data sets
-    df_pairs = global_settings['df_pairs']
+    df_pairs = global_settings['df_pairs'].copy()
     df_prices = get_prices()
     df_protected = global_settings['df_protected']
     mode = global_settings['mode']
+    
+    df_pairs['total_profit'] = df_pairs['Student1_ID'].map(df_protected['Total Profit']) + \
+        df_pairs['Student2_ID'].map(df_protected['Total Profit'])
+    df_pairs.sort_values('total_profit', ascending=False, inplace=True)
+    df_pairs.reset_index(drop=True, inplace=True)
 
     # Generate line plots
     rounds = list(range(1, 11))
@@ -290,7 +310,7 @@ def plot_student_pairs():
             if len(price) == 0 or pd.isna(price[0]):
                 continue
             s1_prices.append(price[0])
-            profit = df_protected.loc[s1_id, f'Round{r}_Profit']
+            profit = pd.to_numeric(df_protected.loc[s1_id, f'Round{r}_Profit'], errors='coerce')
             s1_profits.append(profit)
 
         # Get prices and profits for s2
@@ -302,7 +322,7 @@ def plot_student_pairs():
             if len(price) == 0 or pd.isna(price[0]):
                 continue
             s2_prices.append(price[0])
-            profit = df_protected.loc[s2_id, f'Round{r}_Profit']
+            profit = pd.to_numeric(df_protected.loc[s2_id, f'Round{r}_Profit'], errors='coerce')
             s2_profits.append(profit)
 
         s1_name_short = s1_name.split()[0]
@@ -310,15 +330,15 @@ def plot_student_pairs():
         
         # Plot prices and profits side by sides
         fig, axs = plt.subplots(1, 2, figsize=(15, 5))
-        axs[0].plot(range(len(s1_prices)), s1_prices, label=f'{s1_name_short}', linestyle='solid')
-        axs[0].plot(range(len(s2_prices)), s2_prices, label=f'{s2_name_short}', linestyle='dashed')
+        axs[0].plot(range(1, 1 + len(s1_prices)), s1_prices, label=f'{s1_name_short}', linestyle='solid')
+        axs[0].plot(range(1, 1 + len(s2_prices)), s2_prices, label=f'{s2_name_short}', linestyle='dashed')
         axs[0].set_xlabel('Round')
         axs[0].set_ylabel('Price')
         axs[0].set_title(f'Prices for {s1_name} and {s2_name}')
         axs[0].legend()
         
-        axs[1].plot(range(len(s1_profits)), s1_profits, label=f'{s1_name_short}', linestyle='solid')
-        axs[1].plot(range(len(s2_profits)), s2_profits, label=f'{s2_name_short}', linestyle='dashed')
+        axs[1].plot(range(1, 1+ len(s1_profits)), s1_profits, label=f'{s1_name_short}', linestyle='solid')
+        axs[1].plot(range(1, 1 + len(s2_profits)), s2_profits, label=f'{s2_name_short}', linestyle='dashed')
         axs[1].set_xlabel('Round')
         axs[1].set_ylabel('Profit')
         axs[1].set_title(f'Profits for {s1_name} and {s2_name}')
@@ -326,8 +346,30 @@ def plot_student_pairs():
         plt.tight_layout()
         s1_name_clean = s1_name.replace(' ', '_').lower()
         s2_name_clean = s2_name.replace(' ', '_').lower()
-        plt.savefig(os.path.join(fig_dir, f'results_{mode}_{s1_name_clean}_{s2_name_clean}.png'))
+        plt.savefig(os.path.join(fig_dir, f'rank_{index+1:d}_{s1_name_clean}_{s2_name_clean}.png'))
         plt.close('all')
+    
+    # Add a plot of the average price per round
+    avg_prices = []
+    for r in rounds:
+        prices = df_prices[f'Price_{r}']
+        avg_price = prices.mean()
+        avg_prices.append(avg_price)
+    plt.figure(figsize=(10, 5))
+    plt.plot(rounds, avg_prices, label='Average Price', linestyle='solid', linewidth=2)
+    extra_plots = global_settings['extra_price_plot_lines']
+    palette = {
+        'NE': 'red',
+        'Monopoly': 'green'
+    }
+    for label, price in extra_plots.items():
+        plt.axhline(y=price, linestyle='--', label=label, color=palette.get(label, 'black'))
+    plt.xlabel('Round')
+    plt.ylabel('Price')
+    plt.title('Average Price per Round')
+    plt.legend()
+    plt.tight_layout()
+    plt.savefig(os.path.join(fig_dir, 'average_prices.png'))
     return
         
 
@@ -630,9 +672,14 @@ def update_game_results():
     # Rename the columns
     df_results.rename(columns={'Student1_Name': 'Student 1', 'Student2_Name': 'Student 2',
                                  'Student1_TotalProfit': 'Student 1 Total Profit', 'Student2_TotalProfit': 'Student 2 Total Profit'}, inplace=True)
+    # compute total market profits
+    df_results['Total Market Profits'] = df_results['Student 1 Total Profit'] + df_results['Student 2 Total Profit']
     # Round profits to the nearest decimal
     df_results['Student 1 Total Profit'] = df_results['Student 1 Total Profit'].round(1)
     df_results['Student 2 Total Profit'] = df_results['Student 2 Total Profit'].round(1)
+    
+    # Sort by total market profits
+    df_results.sort_values('Total Market Profits', ascending=False, inplace=True)
 
     # Write df_results to the new sheet
     results_values = [df_results.columns.tolist()] + df_results.values.tolist()
@@ -726,6 +773,10 @@ def main():
             c = float(c)
         global_settings['game_settings'] = {'alpha': alpha, 'c': c}
         global_settings['game_abbrev'] = f'bertrand_alpha{alpha}_c{c}'
+        global_settings['extra_price_plot_lines'] = {
+            'NE': c,
+            'Monopoly': (100 + c) / 2.0 
+        }
     elif mode == 'b':
         setting = clean_input("Choose a Hotelling Setup:\n"
                               "(a) High transport cost (t=1, c=0, v=200)\n"
@@ -751,18 +802,29 @@ def main():
             else:
                 v = float(v)
             global_settings['game_settings'] = {'t': t, 'c': c, 'v': v}
+            global_settings['extra_price_plot_lines'] = {
+                'NE': c + 100 * t,
+            }
         elif setting == 'a':
             # Monopoly price is 150, NE is 100
             t = 1
             c = 0
             v = 200
             global_settings['game_settings'] = {'t': t, 'c': c, 'v': v}
+            global_settings['extra_price_plot_lines'] = {
+                'NE': c + 100 * t,
+                'Monopoly': 150
+            }
         elif setting == 'b':
             # monopoly price is 175, NE is 50
             t = .5
             c = 0
             v = 200
             global_settings['game_settings'] = {'t': t, 'c': c, 'v': v}
+            global_settings['extra_price_plot_lines'] = {
+                'NE': c + 100 * t,
+                'Monopoly': 175
+            }
         global_settings['game_abbrev'] = f'hotelling_t{t}_c{c}_v{v}' 
     
     mode_map = {
@@ -807,8 +869,11 @@ def main():
             continue
         elif option == 'b':
             advance_round(hard=True)
-        else:
+        elif option == 'a':
             advance_round(hard=False)
+        else:
+            print("Invalid option selected.")
+            continue
         
         round_num += 1
 
