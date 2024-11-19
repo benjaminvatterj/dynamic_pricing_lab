@@ -75,10 +75,11 @@ def demand_and_profits(p1, p2):
     # Demand functions
     mode = global_settings['mode']
     total_demand = 100
+    cost = global_settings['game_settings']['c']
+    s1_market_share, s2_market_share = 0, 0
     if mode == 'bertrand':
         # Market share depends inversely on price
         slope = global_settings['game_settings']['alpha']
-        cost = global_settings['game_settings']['c']
         # winner takes all
         if p1 < p2:
             s1_market_share = np.clip(1 - slope * p1 / total_demand, 0, 1.0)
@@ -91,7 +92,6 @@ def demand_and_profits(p1, p2):
     elif mode == 'hotelling':
         # low transport hotelling. NE c+t, monopoly = v/2
         t = global_settings['game_settings']['t']
-        cost = global_settings['game_settings']['c']
         v = global_settings['game_settings']['v']
         # u1(xM) = u2(xM)
         xM = (-p1 + p2 + 100 * t) / (2 * t)
@@ -103,7 +103,7 @@ def demand_and_profits(p1, p2):
         if xA0 < xB0:
             s1_market_share = np.clip(xA0 / 100, 0.0, 1.0)
             s2_market_share = np.clip((100 - xB0) / 100, 0.0, 1.0)
-        elif xA0 > xB0:
+        else:
             s1_market_share = np.clip(xM, 0, 100) / 100
             s2_market_share = 1.0 - s1_market_share    
         

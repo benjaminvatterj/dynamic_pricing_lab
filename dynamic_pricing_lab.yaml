@@ -12,3 +12,4 @@ dependencies:
   - pandas=2.2.2
   - google-api-python-client=2.152.0
   - google-auth-oauthlib=1.2.1
+  - seaborn=0.13.2
